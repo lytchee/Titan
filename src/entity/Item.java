@@ -24,6 +24,7 @@ public class Item {
 	private String snippet;
 	private String snippetUrl;
 	
+
 	public String getItemId() {
 		return itemId;
 	}
@@ -224,5 +225,4 @@ public class Item {
 	}
 
 
-	
 }

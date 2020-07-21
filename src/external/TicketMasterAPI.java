@@ -1,7 +1,3 @@
-/*
- * hGpvGWjikUMleE3xIknhLXi6BHahxNjj
- */
-
 package external;
 
 import java.io.BufferedReader;
@@ -20,32 +16,37 @@ import org.json.JSONObject;
 import entity.Item;
 import entity.Item.ItemBuilder;
 
+
 public class TicketMasterAPI implements ExternalAPI{
 	private static final String API_HOST = "app.ticketmaster.com";
 	private static final String SEARCH_PATH = "/discovery/v2/events.json";
-	private static final String DEFAULT_TERM = "";  // no restriction
+	private static final String DEFAULT_TERM = "ticket";  // not empty or null
+	// Replace with your API key
 	private static final String API_KEY = "hGpvGWjikUMleE3xIknhLXi6BHahxNjj";
 
 	/**
 	 * Creates and sends a request to the TicketMaster API by term and location.
 	 */
 	@Override
-	public  List<Item> search(double lat, double lon, String term) {
+	public List<Item> search(double lat, double lon, String term) {
+		
 		String url = "http://" + API_HOST + SEARCH_PATH;
 		String latlong = lat + "," + lon;
+		// Convert geo location to geo hash with a precision of 4 (+- 20km)
+		String geohash = GeoHash.encodeGeohash(lat, lon, 4);
 		if (term == null) {
 			term = DEFAULT_TERM;
 		}
 		term = urlEncodeHelper(term);
-		String query = String.format("apikey=%s&latlong=%s&keyword=%s", API_KEY, latlong, term);
+		String query = String.format("apikey=%s&geoPoint=%s&keyword=%s", API_KEY, geohash, term);
 		try {
 			HttpURLConnection connection = (HttpURLConnection) new URL(url + "?" + query).openConnection();
 			connection.setRequestMethod("GET");
- 
+
 			int responseCode = connection.getResponseCode();
 			System.out.println("\nSending 'GET' request to URL : " + url + "?" + query);
 			System.out.println("Response Code : " + responseCode);
- 
+
 			BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
 			String inputLine;
 			StringBuffer response = new StringBuffer();
@@ -59,13 +60,12 @@ public class TicketMasterAPI implements ExternalAPI{
 			JSONObject embedded = (JSONObject) responseJson.get("_embedded");
 			JSONArray events = (JSONArray) embedded.get("events");
 			return getItemList(events);
-			/*return events;*/
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
- 
+
 	private String urlEncodeHelper(String term) {
 		try {
 			term = java.net.URLEncoder.encode(term, "UTF-8");
@@ -74,30 +74,18 @@ public class TicketMasterAPI implements ExternalAPI{
 		}
 		return term;
 	}
- 
+
 	private void queryAPI(double lat, double lon) {
-		
-		/*JSONArray events = search(lat, lon, null);
+		List<Item> events = search(lat, lon, null);
 		try {
-			for (int i = 0; i < events.length(); i++) {
-			    JSONObject event = events.getJSONObject(i);
-				System.out.println(event);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}*/
-		
-		List<Item> itemList = search(lat, lon, null);
-		try {
-			for (Item item : itemList) {
-				JSONObject jsonObject = item.toJSONObject();
-				System.out.println(jsonObject);
+			for (Item e: events) {
+				JSONObject jo = e.toJSONObject();
+				System.out.println(jo);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
-	
 	/**
 	 * Helper methods
 	 */
@@ -149,12 +137,10 @@ public class TicketMasterAPI implements ExternalAPI{
 					builder.setLongitude(getNumericFieldOrNull(location, "longitude"));
 				}
 			}
-
 			// Uses this builder pattern we can freely add fields.
 			Item item = builder.build();
 			itemList.add(item);
 		}
-
 		return itemList;
 	}
 
@@ -214,12 +200,13 @@ public class TicketMasterAPI implements ExternalAPI{
 	}
 
 
- 
 	/**
 	 * Main entry for sample TicketMaster API requests.
 	 */
 	public static void main(String[] args) {
 		TicketMasterAPI tmApi = new TicketMasterAPI();
-		tmApi.queryAPI(37.38, -122.08);
+		tmApi.queryAPI(38.65, -90.31);
 	}
+	
+	
 }
